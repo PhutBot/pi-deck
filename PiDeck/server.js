@@ -4,12 +4,12 @@ const logger = require('npmlog');
 
 class PageNotFoundError extends Error {
     constructor(url, options) {
-        super(`Page not found: ${url.pathname}`, options);
+        super(`page not found [${url.pathname}]`, options);
     }
 }
 class InternalServerError extends Error {
     constructor(msg, options) {
-        super(`Internal server error: ${msg}`, options);
+        super(`internal server error: ${msg}`, options);
     }
 }
 
@@ -30,14 +30,16 @@ class Server {
                 PUT: {}
             };
 
-        this._handle404 = (url, req, res) => {
+        this._handle404 = async ({ err }, req, res) => {
+                logger.error('Server', `[ERROR]: 404 - ${err.message || err}`);
                 res.writeHead(404);
-                res.end('Error 404: Page not found');
+                res.end('Error 404: page not found');
             };
 
-        this._handle500 = (url, req, res) => {
+        this._handle500 = async ({ err }, req, res) => {
+                logger.error('Server', `[ERROR]: 500 - ${err.message || err}`);
                 res.writeHead(500);
-                res.end('Error 500: Internal server error');
+                res.end('Error 500: internal server error');
             };
         
         this._sockets = [];
@@ -149,7 +151,13 @@ class Server {
     _baseListener(req, res) {
         const url = new URL(req.url, `http://${req.headers.host}`);
 
+        let handleError = null;
         const handle = this.getHandler(req.method, url.pathname);
+        if (handle === this._handle404) {
+            handleError = `page not found: [${url.pathname}]`;
+        } else if (handle === this._handle500) {
+            handleError = 'internal server error';
+        }
 
         let chunks = [];
         req.on('data', (chunk) => {
@@ -161,15 +169,13 @@ class Server {
                 body = JSON.parse(body);
             }
 
-            handle({ url, body }, req, res)
+            handle({ url, body, err: handleError }, req, res)
                 .catch(err => {
                     try {
                         if (err instanceof PageNotFoundError) {
-                            logger.error('Server', `[ERROR]: 404 - ${err}`);
-                            this._handle404({ url, body }, req, res);
+                            this._handle404({ url, body, err }, req, res);
                         } else {
-                            logger.error('Server', `[ERROR]: 500 - ${err}`);
-                            this._handle500({ url, body }, req, res);
+                            this._handle500({ url, body, err }, req, res);
                         }
                     } catch (err2) {
                         logger.error('Server', `[FATAL]: 500 - ${err2}`);
@@ -181,7 +187,7 @@ class Server {
         req.on('error', (err) => {
             try {
                 logger.error('Server', `[ERROR]: 2 - ${err}`);
-                this._handle500({ url }, req, res);
+                this._handle500({ url, err }, req, res);
             } catch (err2) {
                 logger.error('Server', `[FATAL]: 3 - ${err2}`);
                 process.exit(1);
