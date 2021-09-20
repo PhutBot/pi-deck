@@ -5,9 +5,8 @@ const BasePlugin = require('./plugins/base/plugin');
 
 (async function() {
     try {
-        const server = new Server(8081);
+        const server = new Server(8000, '10.10.0.88');
         const plugins = await LoadPlugins(server, [ 'core', 'slobs' ]);
-        // const plugins = await LoadPlugins(server, [ 'core' ]);
         
         server.onStop = () => cleanupPlugins(server, plugins);
         server.defineHandler({ method: 'GET', path: '/shutdown', handler: (url, req, res) => {
@@ -15,20 +14,7 @@ const BasePlugin = require('./plugins/base/plugin');
                 res.end();
                 setTimeout(() => server.stop(), 1000);
             }});
-        server.defineWildHandler({ method: 'GET', pattern: '/wild/*', handler: (url, req, res) => {
-                res.writeHead(200);
-                res.end('OK');
-            }});
         server.start();
-
-        await plugins['core'].execute('log', { msg: 'this is a test log' });
-        if ('slobs' in plugins) {
-            let result = await plugins.slobs.execute('getSceneNames');
-            logger.info('entrypoint', JSON.stringify(result, (key, val) => key === '_client' ? undefined : val));
-            
-            result = await plugins.slobs.execute('makeSceneActive', { name: 'BRB' });
-            logger.info('entrypoint', JSON.stringify(result, (key, val) => key === '_client' ? undefined : val));
-        }
     } catch (err)  {
         logger.error('entrypoint', err);
     }
