@@ -13,6 +13,7 @@ StreamDeck_*_*
 # application files
 .env
 *settings.json
+run.sh
 
 # ignore plugins except base/core
 PiDeck/Plugins/*
