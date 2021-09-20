@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlay</title>
+    <style>
+        [hidden] {
+            display: none !important;
+        }
+
+        body {
+            background: black;
+            background-size: cover;
+            background-repeat: no-repeat;
+            color: #fff;
+            display: flex;
+            margin: 0;
+        }
+
+        main {
+            width: 100vw;
+        }
+
+        ul {
+            padding: 0;
+        }
+
+        .srcs {
+            float: left;
+        }
+
+        .dsts {
+            float: right;
+        }
+
+        .src, .dst {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 200px;
+            height: 200px;
+            margin: 50px;
+        }
+
+        .src *, .dst * {
+            pointer-events: none;
+        }
+        
+        .src {
+            background-color: green;
+        }
+
+        .dst {
+            background-color: blue;
+        }
+
+        .link {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <ul class="srcs">
+            <li class="src">
+                <h3>Source 1</h3>
+            </li>
+            <li class="src">
+                <h3>Source 2</h3>
+            </li>
+            <li class="src">
+                <h3>Source 2</h3>
+            </li>
+        </ul>
+
+        <ul class="dsts">
+            <li class="dst">
+                <h3>Destination 1</h3>
+            </li>
+            <li class="dst">
+                <h3>Destination 2</h3>
+            </li>
+            <li class="dst">
+                <h3>Destination 3</h3>
+            </li>
+        </ul>
+    </main>
+
+    <script type="module">
+        (function() {
+            class Svg {
+                static NAMESPACE = 'http://www.w3.org/2000/svg';
+
+                constructor(parent) {
+                    parent = parent || document.body;
+                    this._parent = parent;
+                }
+
+                get element() {
+                    return this._svg;
+                }
+
+                create() {
+                    this._svg = document.createElementNS(Svg.NAMESPACE, 'svg');
+
+                    this.element.setAttribute('class', 'link');
+                    this.element.setAttribute('version', '1.1');
+                    this.element.style.zIndex = -1;
+
+                    if (!!this._paths) {
+                        this._paths.forEach(path => this.element.appendChild(path));
+                    }
+
+                    this._parent.appendChild(this.element);
+                    return this;
+                }
+
+                destroy() {
+                    this._parent.removeChild(this.element);
+                }
+
+                path(d, attributes = {}) {
+                    attributes = Object.assign({
+                        stroke: 'transparent',
+                        fill: 'transparent'
+                    }, attributes);
+
+                    if (!this._paths) {
+                        this._paths = [];
+                    }
+
+                    const path = document.createElementNS(Svg.NAMESPACE, 'path');
+                    path.setAttribute('d', d);
+                    Object.entries(attributes).forEach(([ key, val ]) => {
+                        path.setAttribute(key, val);
+                    });
+                    
+                    this._paths.push(path);
+                    if (!!this.element) {
+                        this.element.appendChild(path);
+                    }
+
+                    return this;
+                }
+
+                circle({ x, y }, r, attributes) {
+                    attributes = Object.assign({
+                        stroke: 'transparent',
+                        fill: 'transparent'
+                    }, attributes);
+                    
+                    if (!this._paths) {
+                        this._paths = [];
+                    }
+
+                    const circle = document.createElementNS(Svg.NAMESPACE, 'circle');
+                    circle.setAttribute('cx', x);
+                    circle.setAttribute('cy', y);
+                    circle.setAttribute('r', r);
+                    Object.entries(attributes).forEach(([ key, val ]) => {
+                        circle.setAttribute(key, val);
+                    });
+                    
+                    this._paths.push(circle);
+                    if (!!this.element) {
+                        this.element.appendChild(circle);
+                    }
+
+                    return this;
+                }
+
+                line(p1, p2, attributes) {
+                    return this.path(`M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`, attributes);
+                }
+
+                point(p1, attributes) {
+                    return this.circle(p1, 10, attributes);
+                }
+
+                bezier(beg, cBeg, end, cEnd, attributes) {
+                    this.path(`M ${beg.x} ${beg.y} C ${cBeg.x} ${cBeg.y}, ${cEnd.x} ${cEnd.y}, ${end.x} ${end.y}`, attributes);
+                    
+                    return this
+                    // .point(cBeg, { fill: 'yellow' })
+                    // .point(cEnd, { fill: 'yellow' })
+                        .point(beg, { fill: 'purple' })
+                        .point(end, { fill: 'purple' });
+                }
+            }
+
+            function randomString(length, { chars } = {}) {
+                chars = chars || 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+                let result = '';
+                for (let i = 0; i < length; ++i) {
+                    result += chars[Math.floor(Math.random() * chars.length)]
+                }
+                
+                return result;
+            }
+
+
+            const mulY = 3;
+            const mulX = 7;
+            const div = 8;
+            const links = {};
+            function doLink(src, dst) {
+                if (!!src.id && !!dst.id) {
+                    if (!!links[[src.id, dst.id]] || !!links[[dst.id, src.id]]) {
+                        console.warn('dupe');
+                        return;
+                    }
+
+                    const srcX = src.offsetLeft + src.offsetWidth;
+                    const srcY = src.offsetTop + (src.offsetHeight / 2);
+                    
+                    const dstX = dst.offsetLeft;
+                    const dstY = dst.offsetTop + (dst.offsetHeight / 2);
+                    
+                    const svg = new Svg().create();
+                    svg.bezier(
+                        { x: srcX, y: srcY }, { x: srcX + (mulX * srcX / div), y: srcY + (mulY * srcY / div) },
+                        { x: dstX, y: dstY }, { x: dstX - (mulX * srcX / div), y: dstY - (mulY * srcX / div) },
+                        { stroke: '#' + randomString(6, { chars: /*012*/'3456789abc'/*def*/ }), 'stroke-width': 4 });
+
+                    links[[src.id, dst.id]] = svg;
+                }
+            }
+
+            Array.from(document.getElementsByClassName('dst'))
+                .forEach(dst => {
+                    if (!dst.id)
+                        dst.id = randomString(32);
+
+                    dst.ondragstart
+                        = dst.ondrop
+                        = dst.onselectstart
+                        = (ev) => {
+                            ev.preventDefault();
+                            return false;
+                        };
+                });
+
+            Array.from(document.getElementsByClassName('src'))
+                .forEach(src => {
+                    if (!src.id)
+                        src.id = randomString(32);
+
+                    src.setAttribute('unselectable', 'on');
+                    src.ondragstart
+                        = src.ondrop
+                        = src.onselectstart
+                        = (ev) => {
+                            ev.preventDefault();
+                            return false;
+                        };
+
+                    src.onmousedown = (downEvent) => {
+                        let svg;
+
+                        window.onmousemove = (moveEvent) => {
+                            const srcX = src.offsetLeft + src.offsetWidth;
+                            const srcY = src.offsetTop + (src.offsetHeight / 2);
+                            const dstX = moveEvent.target.classList.contains('dst') ? moveEvent.target.offsetLeft : moveEvent.x;
+                            const dstY = moveEvent.target.classList.contains('dst') ? moveEvent.target.offsetTop + (moveEvent.target.offsetHeight / 2) : moveEvent.y;
+                            if (dstX > srcX || dstY > srcY) {
+                                if (!!svg) {
+                                    svg.destroy();
+                                }
+                                svg = new Svg().create()
+                                    .bezier(
+                                        { x: srcX, y: srcY }, { x: srcX + (mulX * srcX / div), y: srcY + (mulY * srcY / div) },
+                                        { x: dstX, y: dstY }, { x: dstX - (mulX * srcX / div), y: dstY - (mulY * srcX / div) },
+                                        { stroke: 'pink', 'stroke-width': 4 });
+                            }
+                        };
+                        
+                        window.onmouseup = (upEvent) => {
+                            if (upEvent.target.classList.contains('dst'))
+                                doLink(downEvent.target, upEvent.target);
+                                
+                            if (!!svg) {
+                                svg.destroy();
+                            }
+
+                            window.onmouseup
+                                = window.onmousemove
+                                = null;
+                        };
+                    };
+                }); 
+
+        })();
+    </script>
+</body>
+</html>

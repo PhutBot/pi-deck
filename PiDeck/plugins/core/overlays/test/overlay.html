@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlay</title>
+    <style>
+        [hidden] {
+            display: none !important;
+        }
+
+        body {
+            background: black;
+            /* background: url("test/Stream.png"); */
+            background-size: cover;
+            background-repeat: no-repeat;
+            color: #fff;
+        }
+
+        .neonSign {
+            --text-color: #feffd0;
+            --text-glow-color: #f6ff7d;
+
+            top: 0;
+            right: 0;
+            padding: 16px;
+            position: absolute;
+            transform:
+                /* translateY(50%) */
+                rotate(30deg);
+                
+            font-family: "Vibur", sans-serif;
+            text-transform: uppercase;
+            font-weight: 400;
+            text-align: center;
+        }
+
+        .neonPink {
+            --text-color: #f01dff;
+            --text-glow-color: #ee00ff;
+            --text-shadow: 
+                0 0 7px var(--text-color),
+                0 0 10px var(--text-color),
+                0 0 21px var(--text-color),
+                0 0 42px var(--text-glow-color),
+                0 0 82px var(--text-glow-color),
+                0 0 92px var(--text-glow-color),
+                0 0 102px var(--text-glow-color),
+                0 0 151px var(--text-glow-color);
+
+            text-shadow: var(--text-shadow);
+        }
+
+        .neonYellow {
+            --text-color: #fcff4f;
+            --text-glow-color: #faff00;
+            --text-shadow: 
+                0 0 7px var(--text-color),
+                0 0 10px var(--text-color),
+                0 0 21px var(--text-color),
+                0 0 42px var(--text-glow-color),
+                0 0 82px var(--text-glow-color),
+                0 0 92px var(--text-glow-color),
+                0 0 102px var(--text-glow-color),
+                0 0 151px var(--text-glow-color);
+
+            text-shadow: var(--text-shadow);
+        }
+
+        .neonGreen {
+            --text-color: #6fff6f;
+            --text-glow-color: #23ff23;
+            --text-shadow: 
+                0 0 7px var(--text-color),
+                0 0 10px var(--text-color),
+                0 0 21px var(--text-color),
+                0 0 42px var(--text-glow-color),
+                0 0 82px var(--text-glow-color),
+                0 0 92px var(--text-glow-color),
+                0 0 102px var(--text-glow-color),
+                0 0 151px var(--text-glow-color);
+
+            text-shadow: var(--text-shadow);
+        }
+        
+        .flicker {
+            animation: flicker 10s step-start infinite alternate;
+        }
+
+        @keyframes flicker {
+            0%, 24%, 28%, 63%, 65%, 67%, 72%, 100% {
+                opacity: 1;
+            }
+
+            26%, 62%, 64%, 66%, 70% {
+                opacity: 0.25;
+            }    
+        }
+    </style>
+</head>
+<body>
+    <div class="neonSign">
+        <h3>
+            <span class="neonPink">
+                Phut<span class="flicker">Bot</span>
+            </span>
+            <br>
+            <span hidden class="neonGreen afterDark">
+                After D<span class="flicker">a</span>rk
+            </span>
+        </h3>
+    </div>
+
+    <script type="module">
+        function checkTime() {
+            const hour = new Date().getHours();
+            const afterDark = document.getElementsByClassName('afterDark')[0];
+            if (!!afterDark) {
+                if (hour > 0 && hour < 6) {
+                    afterDark.removeAttribute('hidden');
+                } else  {
+                    afterDark.setAttribute('hidden', '');
+                }
+            }
+        }
+
+        checkTime();
+        setInterval(checkTime, 15 * 60 * 1000); //every 15 min
+    </script>
+</body>
+</html>

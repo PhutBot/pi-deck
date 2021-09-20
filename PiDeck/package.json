@@ -1,0 +1,15 @@
+{
+  "name": "pideck",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "debug": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "npmlog": "^5.0.1",
+    "websocket": "^1.0.34"
+  }
+}

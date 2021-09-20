@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overlay</title>
+    <style>
+        [hidden] {
+            display: none !important;
+        }
+
+        body {
+            background: black;
+            /* background: url("test/Stream.png"); */
+            background-size: cover;
+            background-repeat: no-repeat;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            margin: 0;
+        }
+
+        .alert {
+            display: inline-block;
+            max-width: 256px;
+        }
+
+        .alert-msg {
+            font-family: sans-serif;
+            overflow: hidden;
+            text-align: center;
+            text-overflow: ellipsis;
+            text-shadow:
+                -1px -1px 0.5px #000,
+                 1px -1px 0.5px #000,
+                -1px  1px 0.5px #000,
+                 1px  1px 0.5px #000;
+        }
+
+        .alert-source,
+        .alert-amount {
+            color: purple;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="alert-container">
+        <div class="alert follow-alert">
+            <img class="alert-animation" src="alerts/follow-animation.gif">
+            <h2 class="alert-msg">
+                <span class="alert-source">PhutbotPhutbot</span>
+                is&nbsp;now&nbsp;following!
+            </h2>
+        </div>
+        <div class="alert sub-alert">
+            <img class="alert-animation" src="alerts/follow-animation.gif">
+            <h2 class="alert-msg">
+                <span class="alert-source">Phutbot</span>
+                just&nbsp;subscribed!
+            </h2>
+        </div>
+        <div class="alert bit-alert">
+            <img class="alert-animation" src="alerts/follow-animation.gif">
+            <h2 class="alert-msg">
+                <span class="alert-source">Phutbot</span>
+                cheered!&nbsp;x<span class="alert-amount">1000</span>
+            </h2>
+        </div>
+        <div class="alert host-alert">
+            <img class="alert-animation" src="alerts/follow-animation.gif">
+            <h2 class="alert-msg">
+                <span class="alert-source">Phutbot</span>
+                is hosting with a party&nbsp;of&nbsp;<span class="alert-amount">11</span>!
+            </h2>
+        </div>
+        <div class="alert raid-alert">
+            <img class="alert-animation" src="alerts/follow-animation.gif">
+            <h2 class="alert-msg">
+                <span class="alert-source">Phutbot</span>
+                is raiding with a party&nbsp;of&nbsp;<span class="alert-amount">11</span>!
+            </h2>
+        </div>
+    </div>
+
+    <script type="module">
+        class AlertBox {
+            constructor(el) {
+                this._el = el;
+                this._anim = Array.from(this._el.getElementsByClassName('alert-animation'));
+                this._msg = Array.from(this._el.getElementsByClassName('alert-msg'));
+                this._src = Array.from(this._el.getElementsByClassName('alert-source'));
+                this._amnt = Array.from(this._el.getElementsByClassName('alert-amount'));
+            }
+
+            get container() { return this._el; }
+            get type() { return this._type; }
+            get anim() { return this._anim; }
+            get msg() { return this._msg; }
+            get src() { return this._src; }
+            get amnt() { return this._amnt; }
+            
+            toggle() {
+                if (this.container.hasAttribute('hidden')) {
+                    this.show();
+                } else {
+                    this.hide();
+                }
+            }
+
+            show() {
+                this.container.removeAttribute('hidden');
+            }
+
+            hide() {
+                this.container.setAttribute('hidden', '');
+            }
+
+            instanceOf(type) {
+                return this.container.classList.contains(`${type}-alert`)
+            }
+        }
+
+        const alertboxes = Array.from(document.getElementsByClassName('alert'))
+            .map(el => new AlertBox(el));
+
+        function HideAlerts(type) {
+            alertboxes
+                .forEach(alertbox => alertbox.hide());
+        }
+
+        function ShowAlert(type, src, amnt=0) {
+            alertboxes
+                .filter(alertbox => alertbox.instanceOf(type))
+                .forEach(alertbox => {
+                    alertbox.src.forEach(srcEl => srcEl.innerText = src);
+                    alertbox.amnt.forEach(amntEl => amntEl.innerText = amnt);
+                    alertbox.show()
+                });
+        }
+
+        HideAlerts();
+        ShowAlert('follow', 'TestUser', 112);
+    </script>
+</body>
+</html>

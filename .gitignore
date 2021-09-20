@@ -1,0 +1,23 @@
+# ignore emacs backup files
+*~
+
+# vscode
+.vscode/
+*.code-workspace
+
+# build files
+*.deb
+__pycache__/
+StreamDeck_*_*
+
+# application files
+.env
+*settings.json
+
+# ignore plugins except base/core
+PiDeck/Plugins/*
+!PiDeck/Plugins/core
+!PiDeck/Plugins/base
+!PiDeck/Plugins/slobs
+
+node_modules/
