@@ -1,0 +1,3 @@
+if [ -f "/lib/systemd/system/pi-deck.service" ]; then
+    systemctl stop pi-deck
+fi

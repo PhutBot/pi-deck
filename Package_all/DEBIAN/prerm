@@ -1,0 +1,2 @@
+systemctl stop pi-deck
+systemctl disable pi-deck

@@ -1,0 +1,6 @@
+if [ -f "/lib/systemd/system/pi-deck.service" ]; then
+    systemctl stop pi-deck
+fi
+
+pip3 install pillow
+pip3 install websocket-client

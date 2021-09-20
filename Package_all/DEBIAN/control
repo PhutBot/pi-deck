@@ -1,0 +1,11 @@
+Package: PiDeck
+Version: $VERSION
+Architecture: all
+Installed-Size: 1024
+Depends: python3
+Section: custom
+Essential: no
+Priority: optional
+Maintainer: PhutBot <phutbot@gmail.com>
+Homepage: https://github.com/PhutBotDepot/pi-deck
+Description: A raspberry pi based "stream deck"

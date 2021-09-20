@@ -1,0 +1,18 @@
+[Unit]
+Description=PiDeck service
+After=usb_gadget.service
+
+[Service]
+Environment="DISPLAY=:0.0"
+Environment="XAUTHORITY=/home/pi/.Xauthority"
+Environment="SLOBS_TOKEN=$SLOBS_TOKEN"
+User=root
+WorkingDirectory=/opt/PiDeck
+ExecStart=/usr/bin/python3 /opt/PiDeck/PiDeck.py
+Restart=always
+RestartSec=10s
+KillMode=process
+TimeoutSec=infinity
+
+[Install]
+WantedBy=graphical.target
