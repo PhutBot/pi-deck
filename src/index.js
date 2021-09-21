@@ -5,9 +5,8 @@ const BasePlugin = require('./plugins/base/plugin');
 
 (async function() {
     try {
-        const server = new Server(8081);
+        const server = new Server(8080);
         const plugins = await LoadPlugins(server, [ 'core', 'slobs' ]);
-        // const plugins = await LoadPlugins(server, [ 'core' ]);
         
         server.onStop = () => cleanupPlugins(server, plugins);
         server.defineHandler({ method: 'GET', path: '/shutdown', handler: (url, req, res) => {

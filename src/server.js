@@ -14,7 +14,7 @@ class InternalServerError extends Error {
 }
 
 class Server {
-    constructor(port, hostname = 'localhost') {
+    constructor(port, hostname = '0.0.0.0') {
         this._handlers = {
                 DELETE: {},
                 GET: {},
