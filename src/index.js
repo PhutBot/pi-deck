@@ -5,7 +5,7 @@ const BasePlugin = require('./plugins/base/plugin');
 
 (async function() {
     try {
-        const server = new Server(8000, '10.10.0.88');
+        const server = new Server(8080);
         const plugins = await LoadPlugins(server, [ 'core', 'slobs' ]);
         
         server.onStop = () => cleanupPlugins(server, plugins);
