@@ -6,15 +6,15 @@ const BasePlugin = require('./plugins/base/plugin');
 (async function() {
     try {
         const server = new Server(8080);
-        const plugins = await LoadPlugins(server, [ 'core', 'slobs' ]);
-        
+        server.start();
+
+        const plugins = LoadPlugins(server, [ 'core', 'slobs' ]);
         server.onStop = () => cleanupPlugins(server, plugins);
-        server.defineHandler({ method: 'GET', path: '/shutdown', handler: (url, req, res) => {
+        server.defineHandler({ method: 'GET', path: '/shutdown', handler: ({}, _, res) => {
                 res.writeHead(200);
                 res.end();
                 setTimeout(() => server.stop(), 1000);
             }});
-        server.start();
     } catch (err)  {
         logger.error('entrypoint', err);
     }
