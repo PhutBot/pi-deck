@@ -4,12 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "debug": "node index.js"
+    "test": "mocha --recursive",
+    "debug": "node src/index.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "npmlog": "^5.0.1",
     "websocket": "^1.0.34"
+  },
+  "devDependencies": {
+    "mocha": "^9.1.1"
   }
 }
