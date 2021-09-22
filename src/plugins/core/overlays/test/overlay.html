@@ -117,7 +117,7 @@
             const hour = new Date().getHours();
             const afterDark = document.getElementsByClassName('afterDark')[0];
             if (!!afterDark) {
-                if (hour > 0 && hour < 6) {
+                if (hour >= 23 && hour < 6) {
                     afterDark.removeAttribute('hidden');
                 } else  {
                     afterDark.setAttribute('hidden', '');
