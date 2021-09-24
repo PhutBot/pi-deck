@@ -216,7 +216,12 @@ class Server {
     }
 
     get address() {
-        return `http://${this.hostname}:${this.port}`;
+        const proto = 'http';
+        const hostname = this.hostname === '0.0.0.0'
+            ? 'localhost' : this.hostname;
+        const port = this.port !== 80 && this.port !== 443
+            ? `:${this.port}` : '';
+        return `${proto}://${hostname}${port}`;
     }
 
     get onStart() {
