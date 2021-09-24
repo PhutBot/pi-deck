@@ -1,5 +1,6 @@
 const { Server } = require("./server");
 const BasePlugin = require('./plugins/base/plugin');
+const Env = require("./helper/Env");
 
 class Application {
     static _logger = require('npmlog');
@@ -40,7 +41,7 @@ class Application {
         try {
             Plugin = require(`./plugins/${name}/plugin.js`);
         } catch (err) {
-            console.error(err);
+            Application.logger.error(err);
             throw `plugin not found [${name}]`;
         }
     
