@@ -74,7 +74,7 @@ module.exports = class SlobsClient {
         const self = this;
         return new Promise((resolve, reject) => {
             if (!self._isAuthenticated) {
-                self.call('TcpServerService', 'auth', [process.env['SLOBS_TOKEN']])
+                self.call('TcpServerService', 'auth', [process.env['TWITCH_BOT.SLOBS_TOKEN']])
                     .then((response) => {
                         resolve(self._isAuthenticated = response.result);
                         self._scenesService = new ScenesService(self);

@@ -1,13 +1,21 @@
-require('./helper');
+require('./helper/helper');
 const logger = require('npmlog');
 const { Server } = require("./server");
 const BasePlugin = require('./plugins/base/plugin');
+const Env = require('./helper/Env');
 
 (async function() {
     try {
-        const server = new Server(8080);
-        const plugins = await LoadPlugins(server, [ 'core', 'slobs' ]);
-        
+        // Env.load('.env');
+        const port = Env.get('PI_DECK.PORT');
+
+        const server = new Server(port);
+        server.start();
+
+        BasePlugin._serverAddress = server.address.includes('0.0.0.0')
+            ? `http://localhost:${server.port}` : server.address;
+
+        const plugins = LoadPlugins(server, [ 'core', 'slobs', 'twitch' ]);
         server.onStop = () => cleanupPlugins(server, plugins);
         server.defineHandler({ method: 'GET', path: '/shutdown', handler: (url, req, res) => {
                 res.writeHead(200);
@@ -52,12 +60,12 @@ async function LoadPlugin(server, pluginName) {
                 if ('pattern' in endpoint) {
                     server.defineWildHandler({
                             ...endpoint,
-                            pattern: `/plugin/${pluginName}/${endpoint.pattern}`
+                            pattern: `${plugin.baseUri}/${endpoint.pattern}`
                         });
                 } else {
                     server.defineHandler({
                             ...endpoint,
-                            path: `/plugin/${pluginName}/${endpoint.path}`
+                            path: `${plugin.baseUri}/${endpoint.path}`
                         });
                 }
             });

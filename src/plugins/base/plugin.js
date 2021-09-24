@@ -1,5 +1,8 @@
+const Env = require('../../helper/Env');
+
 module.exports = class BasePlugin {
     static _logger = require('npmlog');
+    static _serverAddress = null;
 
     constructor({ name, version, description, author }) {
         this._target = 'pi-deck';
@@ -100,6 +103,18 @@ module.exports = class BasePlugin {
 
     get author() {
         return this._author;
+    }
+
+    get baseUri() {
+        return `/plugin/${this.name}`;
+    }
+
+    get serverAddress() {
+        return BasePlugin._serverAddress;
+    }
+
+    get env() {
+        return Env;
     }
 
     get logger() {
