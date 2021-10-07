@@ -200,7 +200,7 @@ class Server {
     }
 
     _patternToRegex(text) {
-        return '^' + this._escapeRegex(text).replace(/\*/g, '.+') + '$';
+        return '^' + this._escapeRegex(text).replace(/\*/g, '.*') + '$';
     }
 
     get running() {

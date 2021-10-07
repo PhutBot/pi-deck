@@ -6,6 +6,7 @@ const TwitchApi = require('./api/TwitchApi');
 const TwitchChat = require('./api/TwitchChat');
 const TwitchEventSub = require('./api/TwitchEventSub');
 const { CmdScopes, ChatCmd } = require('./ChatCmd');  
+const { Server } = require('../../server');
 
 class Bot {
     constructor(auth) {
@@ -42,8 +43,10 @@ class Bot {
         if (!('data' in body && Array.isArray(body.data) && body.data.length > 0))
             body = await this._api.createCustomReward(this._broadcaster.id, 'Timeout', 300, 'I time you out');
 
+        this._ngrokServer = new Server(Env.get('TWITCH_BOT.EVENTS.PORT'));
+        this._ngrokServer.start();
         this._twitchEventSub = new TwitchEventSub.EventSubscription(
-            this._auth.app.token, hostname, this._server);    
+            this._auth.app.token, hostname, this._ngrokServer);    
 
         Promise.all(
                 Object.keys(await this._twitchEventSub._listSubscription())
@@ -132,16 +135,16 @@ class Bot {
         this._cmds = await this.loadCmdsFromSheets('TWITCH_BOT.SHEET_ID', 'TWITCH_BOT.SHEET_NAME');
         
         this._api = new TwitchApi(this._auth.channel.token);
-        this._broadcaster = (await this._api.users(this_auth.channel.login))[0];
+        this._broadcaster = (await this._api.users(this._auth.channel.login))[0];
 
         await TwitchChat.connect();
-        TwitchChat.authenticate('TWITCH_BOT.CHAT.TWITCH_OAUTH2.TOKEN', this_auth.chat.login);
+        TwitchChat.authenticate('TWITCH_BOT.CHAT.TWITCH_OAUTH2.TOKEN', this._auth.chat.login);
         if (!!this._chat) {
             this._chat.part();
             this._chat.off('cmd');
         }
         
-        this._chat = new TwitchChat(this_auth.channel.login, true);
+        this._chat = new TwitchChat(this._auth.channel.login, true);
         this._chat.on('cmd', async (user, cmd, msg) => {
                 let output = '';
                 let sender = user.toLowerCase();
@@ -222,38 +225,40 @@ class Bot {
             }
             this._running = false;
         }
+        
+        this._ngrokServer.stop();
     }
     
     async isFollower(user) {
-        if (user === this_auth.channel.login)
+        if (user === this._auth.channel.login)
             return true;
-        const follows = await this._api.follows(user, this_auth.channel.login, Millis.fromDay(7));
+        const follows = await this._api.follows(user, this._auth.channel.login, Millis.fromDay(7));
         return follows.length > 0;
     }
     
     async isSubscriber(user) {
-        if (user === this_auth.channel.login)
+        if (user === this._auth.channel.login)
             return true;
-        const subscriptions = await this._api.subscriptions(user, this_auth.channel.login, Millis.fromDay(7));
+        const subscriptions = await this._api.subscriptions(user, this._auth.channel.login, Millis.fromDay(7));
         return subscriptions.length > 0;
     }
     
     async isVip(user) {
-        if (user === this_auth.channel.login)
+        if (user === this._auth.channel.login)
             return true;
         // implement me
         return false;
     }
     
     async isModerator(user) {
-        if (user === this_auth.channel.login)
+        if (user === this._auth.channel.login)
             return true;
-        const modList = await this._api.moderators(this_auth.channel.login, Millis.fromSec(10));
+        const modList = await this._api.moderators(this._auth.channel.login, Millis.fromSec(10));
         return !!modList.map(mod => mod.user_login).includes(user);
     }
     
     isBroadcaster(user) {
-        return (user === this_auth.channel.login);
+        return (user === this._auth.channel.login);
     }
     
     async broadcasterVars(command) {

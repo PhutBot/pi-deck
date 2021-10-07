@@ -27,30 +27,31 @@ class TwitchOAuth2 {
     constructor(server=null, stateToken=null, vars={}) {
         this._varNames = Object.assign(TwitchOAuth2.defaultVars, vars);
         this._stateToken = stateToken || 'c3ab8aa609ea11e793ae92361f002671'; // need to randomize
-        this._authCodeUrl = null;
+        this._authCodeUrls = {};
             
         if (!!server) {
             this._serverRunning = false;
             this._server = server;
-            this._server.defineHandler('GET', '/authorize', (url, req, res) => {
-                    res.setHeader('Location', this.authCodeUrl);
-                    res.writeHead(301);
-                    res.end();
-                });
-            this._server.defineHandler('GET', '/authenticated', (url, req, res) => {
-                    let vars = this._varNames;
-                    if (url.searchParams.has('name')) {
-                        vars = TwitchOAuth2._scopeVars(url.searchParams.get('name'), vars);
-                    }
-                    
-                    res.writeHead(200);
-                    if (url.searchParams.has('code')) {
-                        Env.set(vars.CODE, url.searchParams.get('code'));
-                        res.end('Successfully authenticated via twitch');
-                    } else {
-                        res.end('Failed to authenticate via twitch');
-                    }
-                });
+            ['chat', 'channel'].forEach(path => {
+                const scopeName = `TWITCH_BOT.${path.toUpperCase()}`;
+                this._server.defineHandler('GET', `/authorize/${path}`, (url, req, res) => {
+                        res.setHeader('Location', this.authCodeUrls[scopeName]);
+                        res.writeHead(301);
+                        res.end();
+                    });
+
+                this._server.defineHandler('GET', `/authenticated/${path}`, (url, req, res) => {
+                        let vars = TwitchOAuth2._scopeVars(scopeName, this._varNames);
+                        
+                        res.writeHead(200);
+                        if (url.searchParams.has('code')) {
+                            Env.set(vars.CODE, url.searchParams.get('code'));
+                            res.end('Successfully authenticated via twitch');
+                        } else {
+                            res.end('Failed to authenticate via twitch');
+                        }
+                    });
+            });
         }
     }
 
@@ -62,8 +63,8 @@ class TwitchOAuth2 {
         return this._stateToken;
     }
 
-    get authCodeUrl() {
-        return this._authCodeUrl;
+    get authCodeUrls() {
+        return this._authCodeUrls;
     }
 
     get varNames() {
@@ -94,7 +95,7 @@ class TwitchOAuth2 {
     async generateUserAccessToken(name, redirectUri, scopes=TwitchOAuth2.defaultScopes) {
         const vars = TwitchOAuth2._scopeVars(name, this._varNames);
         if (!Env.get(vars.TOKEN)) {
-            this._authCodeUrl = this.generateAuthCodeUrl(vars, redirectUri, scopes);
+            this._authCodeUrls[name] = this.generateAuthCodeUrl(vars, redirectUri, scopes);
             TwitchOAuth2._storeToken(vars,
                 await request({
                         method: 'POST',
