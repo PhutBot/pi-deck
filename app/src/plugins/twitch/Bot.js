@@ -34,7 +34,6 @@ class Bot {
         const hostname = Env.get('TWITCH_BOT.NGROK.ADDRESS');
 
         // pre-populate the follow list
-        // TODO: this only gets the first 100 users atm
         this._followList = (await this._api.follows(null, this._broadcaster.login))
             .filter(follow => {
                 const blocked = this._blockList.some(blockedName => blockedName.test(follow.from_login));
