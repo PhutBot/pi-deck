@@ -1,10 +1,11 @@
 FROM node:16
 WORKDIR /usr/src/app
 
-COPY src/package*.json ./
+COPY app/package*.json ./
 RUN npm install
 
-COPY src/ .
+COPY app/src/ .
 
-EXPOSE 8080
+EXPOSE 8090
+EXPOSE 8091
 CMD [ "node", "index.js" ]
