@@ -1,4 +1,5 @@
 const http = require('http');
+const { createHash } = require("crypto");
 const logger = require('npmlog');
 
 class HttpError extends Error {
@@ -189,6 +190,12 @@ class Server {
         if (req.headers['connection'] === 'Upgrade') {
             if (req.headers['upgrade'] === 'websocket') {
                 proto = 'ws';
+                const acceptVal = this._getWebsocketAcceptValue(req.headers['sec-websocket-key']);
+                res.setHeader('Upgrade', 'websocket');
+                res.setHeader('Connection', 'Upgrade');
+                res.setHeader('Sec-WebSocket-Accept', acceptVal);
+                res.writeHead(101);
+                res.end();
             } else {
                 throw new BadRequestError(`protocol not supported '${req.headers['Upgrade']}'`);
             }
@@ -257,6 +264,12 @@ class Server {
 
     _patternToRegex(text) {
         return '^' + this._escapeRegex(text).replace(/\*/g, '.*') + '$';
+    }
+
+    _getWebsocketAcceptValue(key) {
+        return createHash("sha1")
+            .update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
+            .digest("base64");
     }
 
     get running() {
