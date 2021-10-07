@@ -37,8 +37,7 @@ module.exports = class CorePlugin extends BasePlugin {
                         res.writeHead(200);
                         res.end('OK');
                     }
-            },
-            {
+            }, {
                 method: 'GET',
                 pattern: 'overlays/*',
                 handler: async ({ url }, req, res) => {
@@ -66,8 +65,7 @@ module.exports = class CorePlugin extends BasePlugin {
                         res.writeHead(200);
                         res.end(file);
                     }
-            },
-            {
+            }, {
                 method: 'GET',
                 pattern: 'tools/*',
                 handler: async ({ url }, req, res) => {

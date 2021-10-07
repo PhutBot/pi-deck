@@ -1,20 +1,26 @@
 const { Server } = require("./server");
 const BasePlugin = require('./plugins/base/plugin');
 const Env = require("./helper/Env");
+// const whyIsNodeRunning = require('why-is-node-running');
 
 class Application {
     static _logger = require('npmlog');
 
     constructor() {
-        // Env.load('.env');
+        Env.load('.env');
         const port = Env.get('PI_DECK.PORT');
         this._server = new Server(port);
-        this._server.onStop = () => this.unloadPlugins(Object.keys(this._plugins));
+        this._server.onStop = () => {
+                this.unloadPlugins(Object.keys(this._plugins));
+                // try {
+                //     setTimeout(whyIsNodeRunning, 3000);
+                // } catch (err) {}
+            };
         this._server.defineHandler({ method: 'GET', path: '/shutdown', handler: async ({}, _, res) => {
-            res.writeHead(200);
-            res.end();
-            setTimeout(() => this._server.stop(), 1000);
-        }});
+                res.writeHead(200);
+                res.end();
+                setTimeout(() => this._server.stop(), 1000);
+            }});
         
         BasePlugin._serverAddress = this._server.address;
 
@@ -48,7 +54,6 @@ class Application {
         if (!!Plugin && Plugin.__proto__ === BasePlugin) {
             const plugin = new Plugin();
             
-            await plugin.init();
             plugin.endpoints.forEach(endpoint => {
                     if ('pattern' in endpoint) {
                         this._server.defineWildHandler({
@@ -62,6 +67,7 @@ class Application {
                             });
                     }
                 });
+            await plugin.init();
                 
             return this._plugins[name] = plugin;
         } else {

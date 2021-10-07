@@ -23,6 +23,7 @@ class Env {
         filecontent.split('\n')
             .filter(line => !!line.trim())
             .forEach(line => {
+                line = line.trim();
                 const split = line.indexOf('=');
                 if (split > 0) {
                     const key = line.slice(0, split);

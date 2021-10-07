@@ -1,3 +1,4 @@
+const Env = require('../../helper/Env');
 const { InternalServerError } = require('../../server');
 const BasePlugin = require('../base/plugin');
 const SlobsClient = require('./client/SlobsClient');
@@ -10,7 +11,7 @@ module.exports = class SlobsPlugin extends BasePlugin {
                 description: 'The slobs plugin for the PiDeck.',
                 author: 'Caleb French'
             });
-        this._client = new SlobsClient('10.10.0.234', 59650);
+        this._client = new SlobsClient(Env.get('SLOBS_CLIENT.ADDRESS'), Env.get('SLOBS_CLIENT.PORT'));
     }
 
     getSceneNames() {
