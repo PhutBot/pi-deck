@@ -10,10 +10,17 @@ class TwitchChat {
     static msgQueue = [];
     static msgQueueProcessor = null;
     static msgQueueMaxSize = 3;               // max msg count allowed in queue before dropping msgs (will be multiplied by 5 if the bot is a mod)
-    static msgInterval = 100;                 // interval at which msgs are processed 
     static rateLimitCount = 2;                // twitch rate limit is 20 msgs (will be multiplied by 5 if the bot is a mod)
     static rateLimitTime = Millis.fromSec(3); // every 30 seconds
     static rateLimit = { count: 0, time: TwitchChat.rateLimitTime };
+
+    get rateLimitedCount() {
+        return this.isMod ? TwitchChat.rateLimitCount * 5 : TwitchChat.rateLimitCount;
+    }
+
+    get msgInterval() {
+        return TwitchChat.rateLimitTime / this.rateLimitedCount;
+    }
 
     static async connect(host='irc.chat.twitch.tv', port=6667, timeout=3000) {
         if (!!TwitchChat.ircClient.connected)
@@ -22,10 +29,9 @@ class TwitchChat {
     }
 
     _startMsgQueueProcessor() {
-        const rateLimitCount = this.isMod ? TwitchChat.rateLimitCount * 5 : TwitchChat.rateLimitCount;
         if (!TwitchChat.msgQueueProcessor) {
             TwitchChat.msgQueueProcessor = setInterval(() => {
-                if (TwitchChat.msgQueue.length > 0 && TwitchChat.rateLimit.count < rateLimitCount) {
+                if (TwitchChat.msgQueue.length > 0 && TwitchChat.rateLimit.count < this.rateLimitedCount) {
                     TwitchChat.rateLimit.count += 1;
                     const msg = TwitchChat.msgQueue.shift();
                     this._handleMsg(this.channel, TwitchChat.login, msg);
@@ -34,12 +40,12 @@ class TwitchChat {
                     }
                 }
 
-                TwitchChat.rateLimit.time -= TwitchChat.msgInterval;
-                if (TwitchChat.rateLimit.time <= -TwitchChat.msgInterval) {
+                TwitchChat.rateLimit.time -= this.msgInterval;
+                if (TwitchChat.rateLimit.time <= -this.msgInterval) {
                     TwitchChat.rateLimit.count = 0;
                     TwitchChat.rateLimit.time = TwitchChat.rateLimitTime;
                 }
-            }, TwitchChat.msgInterval);
+            }, this.msgInterval);
         }
     }
 
@@ -98,12 +104,14 @@ class TwitchChat {
         }
     }
 
-    chat(msg) {
+    async chat(msg) {
         if (!msg)
             return;
         const msgQueueMaxSize = this.isMod ? TwitchChat.msgQueueMaxSize * 5 : TwitchChat.msgQueueMaxSize;
-        if (TwitchChat.msgQueue.length < msgQueueMaxSize) {
+        if (TwitchChat.msgQueue.length < msgQueueMaxSize - 1) {
             TwitchChat.msgQueue.push(msg);
+        } else {
+            console.error(`msg queue is full, msg was dropped ${msg}`);
         }
     }
 
