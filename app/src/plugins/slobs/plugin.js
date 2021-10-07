@@ -90,8 +90,7 @@ module.exports = class SlobsPlugin extends BasePlugin {
                         res.writeHead(200);
                         res.end('OK');
                     }
-            },
-            {
+            }, {
                 method: 'GET',
                 path: '/scene',
                 handler: async ({ body }, req, res) => {
@@ -99,8 +98,7 @@ module.exports = class SlobsPlugin extends BasePlugin {
                         res.writeHead(200);
                         res.end(response.result.name);
                     }
-            },
-            {
+            }, {
                 method: 'GET',
                 path: '/scenes',
                 handler: async ({ body }, req, res) => {
