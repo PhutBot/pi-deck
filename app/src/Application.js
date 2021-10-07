@@ -1,4 +1,4 @@
-const { Server } = require("./server");
+const { HttpServer } = require('./server/server');
 const BasePlugin = require('./plugins/base/plugin');
 const Env = require("./helper/Env");
 // const whyIsNodeRunning = require('why-is-node-running');
@@ -9,7 +9,7 @@ class Application {
     constructor() {
         Env.load('.env');
         const port = Env.get('PI_DECK.PORT');
-        this._server = new Server(port);
+        this._server = new HttpServer(port);
         this._server.onStop = () => {
                 this.unloadPlugins(Object.keys(this._plugins));
                 // try {

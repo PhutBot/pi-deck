@@ -1,6 +1,6 @@
 const fs = require('fs');
 const BasePlugin = require('../base/plugin');
-const { PageNotFoundError } = require("../../server");
+const { PageNotFoundError } = require('../../server/server');
 
 module.exports = class CorePlugin extends BasePlugin {
     constructor() {

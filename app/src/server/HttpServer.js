@@ -1,6 +1,14 @@
 const http = require('http');
+const net = require('net');
 const { createHash } = require("crypto");
 const logger = require('npmlog');
+
+const WsCloseCodeMsgs = {
+    1000: 'indicates a normal closure, meaning that the purpose for which the connection was established has been fulfilled.',
+    1001: 'indicates that an endpoint is "going away", such as a server going down or a browser having navigated away from a page.',
+    1002: 'indicates that an endpoint is terminating the connection due to a protocol error.',
+    1003: 'indicates that an endpoint is terminating the connection because it has received a type of data it cannot accept (e.g., an endpoint that understands only text data MAY send this if it receives a binary message).',
+};
 
 class HttpError extends Error {
     constructor(statusCode, msg, options) {
@@ -30,7 +38,7 @@ class BadRequestError extends HttpError {
     }
 }
 
-class Server {
+class HttpServer {
     constructor(port, hostname = '0.0.0.0') {
         this._handlers = {
                 DELETE: {},
@@ -50,19 +58,19 @@ class Server {
         this._handleError = async ({ err }, _, res) => {
                 const code = err.statusCode || 500;
                 const msg = err.message || err;
-                logger.error('Server', `[ERROR]: ${code} - ${msg}`);
+                logger.error('HttpServer', `[ERROR]: ${code} - ${msg}`);
                 res.writeHead(code);
                 res.end(msg);
             };
 
         this._handle404 = async ({ err }, req, res) => {
-                logger.error('Server', `[ERROR]: 404 - ${err.message || err}`);
+                logger.error('HttpServer', `[ERROR]: 404 - ${err.message || err}`);
                 res.writeHead(404);
                 res.end('Error 404: page not found');
             };
 
         this._handle500 = async ({ err }, req, res) => {
-                logger.error('Server', `[ERROR]: 500 - ${err.message || err}`);
+                logger.error('HttpServer', `[ERROR]: 500 - ${err.message || err}`);
                 res.writeHead(500);
                 res.end('Error 500: internal server error');
             };
@@ -87,30 +95,150 @@ class Server {
         this._server.on('connection', (socket) => {
                 this._sockets.push(socket);
             });
+
+        this._server.on('upgrade', (req, socket) => {
+                const acceptVal = this._getWebsocketAcceptValue(req.headers['sec-websocket-key']);
+                const headers = [
+                    'HTTP/1.1 101 Web Socket Protocol Handshake',
+                    'Upgrade: websocket',
+                    'Connection: Upgrade',
+                    `Sec-WebSocket-Accept: ${acceptVal}`,
+                    '', ''
+                ];
+                
+                let op = null;
+                let runningIdx = 0;
+                let len = 0;
+                let count = 0;
+                let mask = [];
+                let msg = null;
+                socket.on('data', (buffer) => {
+                    let byteIdx = 0;
+                    while (byteIdx < buffer.length) {
+                        if (len === 0) {
+                            let byte = buffer.readUInt8(byteIdx++);
+                            const fin = (byte & 0x80) >> 7;
+                            const res = (byte & 0x70) >> 4;
+                            op = (byte & 0x0F) >> 0;
+
+                            byte = buffer.readUInt8(byteIdx++);
+                            const hasMask = (byte & 0x80) >> 7;
+                            len = (byte & 0x7F) >> 0;
+
+                            if (len === 126) {
+                                len = buffer.readUInt16BE(byteIdx);
+                                byteIdx += 2;
+                            } else if (len === 127) {
+                                len = buffer.readBigUInt64BE(byteIdx);
+                                byteIdx += 8;
+                            }
+                            msg = Buffer.alloc(len);
+
+                            mask = [
+                                buffer.readUInt8(byteIdx++),
+                                buffer.readUInt8(byteIdx++),
+                                buffer.readUInt8(byteIdx++),
+                                buffer.readUInt8(byteIdx++),
+                            ];
+                        }
+
+                        const end = typeof len === 'bigint'
+                            ? buffer.length
+                            : Math.min(buffer.length, byteIdx + len);
+
+                        buffer.subarray(byteIdx, end).forEach((byte, i) => {
+                            msg.writeUInt8(byte ^ mask[runningIdx % 4], i);
+                            runningIdx++;
+                            byteIdx++;
+                        });
+
+                        if (op === 0x1) {
+                            // const payload = msg.toString();
+                            // msg += payload;
+                        } else if (op === 0x8) {
+                            const code = msg.readUInt16BE();
+                            console.log(WsCloseCodeMsgs[code]);
+                        } else {
+                            console.log(op);
+                        }
+
+                        count += buffer.length;
+                        if (count >= len) {
+                            console.log(msg.toString());
+                            socket.write(this.createWsMsg(msg));
+                            len = 0;
+                            mask = [];
+                            runningIdx = 0;
+                            op = null;
+                            msg = null;
+                        }
+                    }
+                }).on('end', () => {
+                    console.log('end');
+                });
+                
+                const out = headers.join('\r\n');
+                socket.write(out);
+            });
+    }
+
+    createWsMsg(msg) {
+        const fin = 1;
+        const res = 0;
+        const op = 0x1;
+        let byte1 = ((fin & 0x1) << 7) | ((res & 0x7) << 4) | (op & 0xF);
+        
+        const hasMask = 0;
+        let lenEx = 0;
+        let lenExSize = 0;
+        let len = msg.length;
+        if (len >= 0x7E && len <= 0xFFFF) {
+            lenEx = len;
+            lenExSize = 2;
+            len = 126;
+        } else if (len > 0xFFFF) {
+            lenEx = len;
+            lenExSize = 8;
+            len = 127;
+        }
+        let byte2 = ((hasMask & 0x1) << 7) | (len & 0x7F);
+        
+        const buffer = Buffer.alloc(2 + lenExSize + msg.length);
+        buffer.writeUInt8(byte1, 0);
+        buffer.writeUInt8(byte2, 1);
+
+        if (lenExSize === 2) {
+            buffer.writeUInt16BE(lenEx, 2);
+        } else if (lenExSize === 8) {
+            buffer.writeBigUInt64BE(lenEx, 2);
+        }
+
+        buffer.write(msg.toString(), 2 + lenEx, 'utf-8');
+        return buffer;
     }
 
     start() {
         if (this.running) {
-            logger.warn('Server', 'server already started');
+            logger.warn('HttpServer', 'server already started');
             return;
         }
 
         this._server.listen(this.port, this.hostname, () => {
                 this._running = true;
-                logger.info('Server', `server started @ ${this.address}`);
+                logger.info('HttpServer', `server started @ ${this.address}`);
                 this.onStart();
             });
     }
 
     stop() {
         if (!this.running) {
-            logger.warn('Server', 'server already stopped');
+            logger.warn('HttpServer', 'server already stopped');
             return;
         }
 
         this._sockets.forEach(socket => socket.destroy());
         this._server.close(() => {
-                logger.info('Server', 'server stopped');
+                logger.info('HttpServer', 'server stopped');
                 this.onStop();
                 this._running = false;
             });
@@ -138,7 +266,7 @@ class Server {
             }
         } catch (err) {
             handler = this._handle500;
-            logger.error('Server', `[ERROR]: 1 - ${err}`);
+            logger.error('HttpServer', `[ERROR]: 1 - ${err}`);
         }
         return handler;
     }
@@ -150,7 +278,7 @@ class Server {
             throw 'unsupported http method';
         } else if (!path in this._handlers[method]) {
             if (!!force)
-                logger.warn('Server', `overriding handler ${method} ${path}`);
+                logger.warn('HttpServer', `overriding handler ${method} ${path}`);
             else
                 throw `handler already exists: ${method} ${path}`;
         }
@@ -171,7 +299,7 @@ class Server {
             throw 'unsupported http method';
         } else if (!pattern in this._wildHandlers[method]) {
             if (!!force)
-                logger.warn('Server', `overriding handler ${method} ${pattern}`);
+                logger.warn('HttpServer', `overriding handler ${method} ${pattern}`);
             else
                 throw `handler already exists: ${method} ${pattern}`;
         }
@@ -186,20 +314,6 @@ class Server {
 
     _baseListener(req, res) {
         let proto =  'http';
-
-        if (req.headers['connection'] === 'Upgrade') {
-            if (req.headers['upgrade'] === 'websocket') {
-                proto = 'ws';
-                const acceptVal = this._getWebsocketAcceptValue(req.headers['sec-websocket-key']);
-                res.setHeader('Upgrade', 'websocket');
-                res.setHeader('Connection', 'Upgrade');
-                res.setHeader('Sec-WebSocket-Accept', acceptVal);
-                res.writeHead(101);
-                res.end();
-            } else {
-                throw new BadRequestError(`protocol not supported '${req.headers['Upgrade']}'`);
-            }
-        }
 
         if (proto === 'ws' || proto === 'wss') {
             this._doWs(req, res);
@@ -237,7 +351,7 @@ class Server {
                             this._handle500({ url, body, err }, req, res);
                         }
                     } catch (err2) {
-                        logger.error('Server', `[FATAL]: 500 - ${err2}`);
+                        logger.error('HttpServer', `[FATAL]: 500 - ${err2}`);
                         process.exit(1);
                     }
                 });
@@ -245,10 +359,10 @@ class Server {
 
         req.on('error', (err) => {
             try {
-                logger.error('Server', `[ERROR]: 2 - ${err}`);
+                logger.error('HttpServer', `[ERROR]: 2 - ${err}`);
                 this._handle500({ url, err }, req, res);
             } catch (err2) {
-                logger.error('Server', `[FATAL]: 3 - ${err2}`);
+                logger.error('HttpServer', `[FATAL]: 3 - ${err2}`);
                 process.exit(1);
             }
         });
@@ -315,5 +429,5 @@ module.exports = {
     PageNotFoundError,
     InternalServerError,
     BadRequestError,
-    Server
+    HttpServer
 };

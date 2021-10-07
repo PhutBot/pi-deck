@@ -6,7 +6,7 @@ const TwitchApi = require('./api/TwitchApi');
 const TwitchChat = require('./api/TwitchChat');
 const TwitchEventSub = require('./api/TwitchEventSub');
 const { CmdScopes, ChatCmd } = require('./ChatCmd');  
-const { Server } = require('../../server');
+const { HttpServer } = require('../../server/server');
 const { ReadFileLSV, WriteFileLSV } = require('../../helper/File');
 
 //TODO: check on chat rate limits
@@ -56,7 +56,7 @@ class Bot {
         if (!('data' in body && Array.isArray(body.data) && body.data.length > 0))
             body = await this._api.createCustomReward(this._broadcaster.id, 'Timeout', 300, 'I time you out');
 
-        this._ngrokServer = new Server(Env.get('TWITCH_BOT.EVENTS.PORT'));
+        this._ngrokServer = new HttpServer(Env.get('TWITCH_BOT.EVENTS.PORT'));
         this._ngrokServer.start();
         this._twitchEventSub = new TwitchEventSub.EventSubscription(
             this._auth.app.token, hostname, this._ngrokServer);    
