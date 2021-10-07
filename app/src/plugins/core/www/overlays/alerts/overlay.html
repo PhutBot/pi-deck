@@ -12,11 +12,11 @@
 
         body {
             background: black;
-            /* background: url("test/Stream.png"); */
             background-size: cover;
             background-repeat: no-repeat;
             color: #fff;
             display: flex;
+            font-family: sans-serif;
             justify-content: center;
             margin: 0;
         }
@@ -27,7 +27,6 @@
         }
 
         .alert-msg {
-            font-family: sans-serif;
             overflow: hidden;
             text-align: center;
             text-overflow: ellipsis;
@@ -42,6 +41,22 @@
         .alert-amount {
             color: purple;
             white-space: nowrap;
+        }
+
+        .msg-text {
+            font-size: 2em;
+
+            display: inline-block;
+            max-width: 256px;
+
+            overflow: hidden;
+            text-align: center;
+            text-overflow: ellipsis;
+            text-shadow:
+                -1px -1px 0.5px #000,
+                 1px -1px 0.5px #000,
+                -1px  1px 0.5px #000,
+                 1px  1px 0.5px #000;
         }
     </style>
 </head>
@@ -84,6 +99,10 @@
         </div>
     </div>
 
+    <div class="msg-box" hidden>
+        <span class="msg-text">Phutbot</span>
+    </div>
+
     <script type="module">
         class AlertBox {
             constructor(el) {
@@ -122,6 +141,8 @@
             }
         }
 
+        const msgbox = document.getElementsByClassName('msg-box')[0];
+        const msgtext = document.getElementsByClassName('msg-text')[0];
         const alertboxes = Array.from(document.getElementsByClassName('alert'))
             .map(el => new AlertBox(el));
 
@@ -140,8 +161,29 @@
                 });
         }
 
+        function ShowMsg(text) {
+            msgtext.innerText = text;
+            msgbox.removeAttribute('hidden');
+        }
+
+        function HideMsg() {
+            msgbox.setAttribute('hidden', '');
+        }
+
+        HideMsg();
         HideAlerts();
-        ShowAlert('follow', 'TestUser', 112);
+
+        // ShowMsg('test');
+        // ShowAlert('follow', 'TestUser', 112);
+
+        const socket = new WebSocket('ws://10.10.0.88:8090/');
+        socket.addEventListener('open', (event) => {
+            socket.send('hello server');
+        });
+        
+        socket.addEventListener('open', (event) => {
+            socket.send('hello server');
+        });
     </script>
 </body>
 </html>

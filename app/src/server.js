@@ -184,9 +184,23 @@ class Server {
     }
 
     _baseListener(req, res) {
-        this._doHttp(req, res);
-    }
+        let proto =  'http';
 
+        if (req.headers['connection'] === 'Upgrade') {
+            if (req.headers['upgrade'] === 'websocket') {
+                proto = 'ws';
+            } else {
+                throw new BadRequestError(`protocol not supported '${req.headers['Upgrade']}'`);
+            }
+        }
+
+        if (proto === 'ws' || proto === 'wss') {
+            this._doWs(req, res);
+        } else {
+            this._doHttp(req, res);
+        }
+    }
+    
     _doHttp(req, res) {
         const url = new URL(req.url, `http://${req.headers.host}`);
         let handleError = null;
@@ -231,6 +245,10 @@ class Server {
                 process.exit(1);
             }
         });
+    }
+
+    _doWs(req, res) {
+        this._handle500({ err: 'websocket not implemented' }, req, res);
     }
 
     _escapeRegex(text) {
