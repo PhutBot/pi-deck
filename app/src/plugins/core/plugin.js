@@ -48,9 +48,9 @@ module.exports = class CorePlugin extends BasePlugin {
                         } else {
                             try {
                                 if (path.includes('.')) {
-                                    file = fs.readFileSync(`plugins/core/overlays/${path}`);
+                                    file = fs.readFileSync(`plugins/core/www/overlays/${path}`);
                                 } else {
-                                    file = fs.readFileSync(`plugins/core/overlays/${path}/overlay.html`, 'utf8');
+                                    file = fs.readFileSync(`plugins/core/www/overlays/${path}/overlay.html`, 'utf8');
                                 }
                                 this._overlays[path] = file;
                             } catch (err) {
@@ -75,9 +75,9 @@ module.exports = class CorePlugin extends BasePlugin {
                             file = this._overlays[path];
                         } else {
                             if (path.includes('.')) {
-                                file = fs.readFileSync(`plugins/core/tools/${path}`);
+                                file = fs.readFileSync(`plugins/core/www/tools/${path}`);
                             } else {
-                                file = fs.readFileSync(`plugins/core/tools/${path}/tool.html`, 'utf8');
+                                file = fs.readFileSync(`plugins/core/www/tools/${path}/tool.html`, 'utf8');
                             }
                             this._overlays[path] = file;
                         }
