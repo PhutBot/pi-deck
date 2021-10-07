@@ -33,7 +33,6 @@ class EventSubscription {
             + createHmac("sha256", transport.secret)
                 .update(hmacMsg)
                 .digest("hex");
-                const data = 'test';
 
         return (signature === headers['twitch-eventsub-message-signature']);
     }
@@ -96,50 +95,41 @@ class EventSubscription {
         }
 
         const uri = transport.callback.replace(this._hostname, '');
-        this._server.defineHandler('POST', uri, 
-            (_, req, res) => {
-                let chunks = [];
-                req.on('error', (err) => {
-                    console.error(err);
-                    res.writeHead(500);
-                    res.end(err);
-                }).on('data', (chunk) => {
-                    chunks.push(chunk);
-                }).on('end', () => {
-                    const body = Buffer.concat(chunks).toString();
-                    if (!!body) {
-                        if (!this._verifySignature(transport, req.headers, body)) {
-                            res.writeHead(403);
-                            res.end();
-                        } else {
-                            try {
-                                const json = JSON.parse(body);
-                                if ('challenge' in json && 'subscription' in json && 'status' in json['subscription']
-                                        && json['subscription']['status'] === 'webhook_callback_verification_pending') {
-                                    res.writeHead(200);
-                                    res.end(json['challenge']);
-                                } else if ('event' in json) {
-                                    res.writeHead(200);
-                                    res.end();
-                                    handler({ type, event: json['event'] });
-                                } else {
+        this._server.defineHandler({
+                method: 'POST',
+                path: uri,
+                handler: async ({ body }, req, res) => {
+                        if (!!body) {
+                            if (!this._verifySignature(transport, req.headers, JSON.stringify(body))) {
+                                res.writeHead(403);
+                                res.end();
+                            } else {
+                                try {
+                                    if ('challenge' in body && 'subscription' in body && 'status' in body['subscription']
+                                            && body['subscription']['status'] === 'webhook_callback_verification_pending') {
+                                        res.writeHead(200);
+                                        res.end(body['challenge']);
+                                    } else if ('event' in body) {
+                                        res.writeHead(200);
+                                        res.end();
+                                        handler({ type, event: body['event'] });
+                                    } else {
+                                        res.writeHead(500);
+                                        res.end();
+                                        throw 'error!!!!!!!!!!!!!!!!!!!!!!!! c_WeiGdO4A';
+                                    }
+                                } catch (err) {
                                     res.writeHead(500);
                                     res.end();
-                                    throw 'error!!!!!!!!!!!!!!!!!!!!!!!! c_WeiGdO4A';
+                                    throw `error!!!!!!!!!!!!!!!!!!!!!!!! CZaAgd6eox ${err}`;
                                 }
-                            } catch (err) {
-                                res.writeHead(500);
-                                res.end();
-                                throw `error!!!!!!!!!!!!!!!!!!!!!!!! CZaAgd6eox ${err}`;
                             }
+                        } else {
+                            res.writeHead(500);
+                            res.end();
+                            throw 'error!!!!!!!!!!!!!!!!!!!!!!!! O5tCoDvRBc';
                         }
-                    } else {
-                        res.writeHead(500);
-                        res.end();
-                        throw 'error!!!!!!!!!!!!!!!!!!!!!!!! O5tCoDvRBc';
                     }
-                });
-
             });
 
         let { body } = await request({
@@ -188,6 +178,8 @@ class EventSubscription {
                 },
                 query: { "id": this._subscriptions[subName].id }
             });
+
+        delete this._subscriptions[subName];
         console.log(`deleted eventSub ${subName}`);
     }
 
