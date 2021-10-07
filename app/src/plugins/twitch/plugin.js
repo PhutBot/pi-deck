@@ -54,6 +54,30 @@ module.exports = class TwitchPlugin extends BasePlugin {
         return [
             {
                 method: 'GET',
+                pattern: '*',
+                handler: async ({ url }, _, res) => {
+                        let file = null;
+                        const path = url.pathname.substr('/plugin/twitch/'.length);
+                        if (this._enableOverlayCache && path in this._htmlFiles) {
+                            file = this._htmlFiles[path];
+                        } else {
+                            if (path.includes('.')) {
+                                file = fs.readFileSync(`plugins/twitch/www/${path}`);
+                            } else {
+                                file = fs.readFileSync(`plugins/twitch/www/${path}/index.html`, 'utf8');
+                            }
+                            this._htmlFiles[path] = file;
+                        }
+                        
+                        if (!file) {
+                            throw new PageNotFoundError(url);
+                        } else {
+                            res.writeHead(200);
+                            res.end(file);
+                        }
+                    }
+            }, {
+                method: 'GET',
                 pattern: 'authorize/*',
                 handler: async ({ url }, _, res) => {
                         const path = url.pathname.substr('/plugin/twitch/authorize/'.length);
@@ -81,30 +105,6 @@ module.exports = class TwitchPlugin extends BasePlugin {
                         } else {
                             res.writeHead(403);
                             res.end('Failed to authenticate via twitch');
-                        }
-                    }
-            }, {
-                method: 'GET',
-                pattern: '*',
-                handler: async ({ url }, _, res) => {
-                        let file = null;
-                        const path = url.pathname.substr('/plugin/twitch/'.length);
-                        if (this._enableOverlayCache && path in this._htmlFiles) {
-                            file = this._htmlFiles[path];
-                        } else {
-                            if (path.includes('.')) {
-                                file = fs.readFileSync(`plugins/twitch/www/${path}`);
-                            } else {
-                                file = fs.readFileSync(`plugins/twitch/www/${path}/index.html`, 'utf8');
-                            }
-                            this._htmlFiles[path] = file;
-                        }
-                        
-                        if (!file) {
-                            throw new PageNotFoundError(url);
-                        } else {
-                            res.writeHead(200);
-                            res.end(file);
                         }
                     }
             }

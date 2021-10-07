@@ -54,7 +54,11 @@ class Application {
         if (!!Plugin && Plugin.__proto__ === BasePlugin) {
             const plugin = new Plugin();
             
-            plugin.endpoints.forEach(endpoint => {
+            plugin.endpoints.sort((first, second) => {
+                const left = first.path || first.pattern;
+                const right = second.path || second.pattern;
+                return right.length - left.length;
+            }).forEach(endpoint => {
                     if ('pattern' in endpoint) {
                         this._server.defineWildHandler({
                                 ...endpoint,
