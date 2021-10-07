@@ -1,15 +1,31 @@
 const http = require('http');
 const logger = require('npmlog');
 
+class HttpError extends Error {
+    constructor(statusCode, msg, options) {
+        super(msg, options);
+        this._statusCode = statusCode;
+    }
 
-class PageNotFoundError extends Error {
-    constructor(url, options) {
-        super(`page not found [${url.pathname}]`, options);
+    get statusCode() {
+        return this._statusCode;
     }
 }
-class InternalServerError extends Error {
+
+class PageNotFoundError extends HttpError {
+    constructor(url, options) {
+        super(404, `page not found [${url.pathname}]`, options);
+    }
+}
+class InternalServerError extends HttpError {
     constructor(msg, options) {
-        super(`internal server error: ${msg}`, options);
+        super(500, `internal server error: ${msg}`, options);
+    }
+}
+
+class BadRequestError extends HttpError {
+    constructor(msg, options) {
+        super(400, `bad request: ${msg}`, options);
     }
 }
 
@@ -30,6 +46,14 @@ class Server {
                 PUT: {}
             };
 
+        this._handleError = async ({ err }, _, res) => {
+                const code = err.statusCode || 500;
+                const msg = err.message || err;
+                logger.error('Server', `[ERROR]: ${code} - ${msg}`);
+                res.writeHead(code);
+                res.end(msg);
+            };
+
         this._handle404 = async ({ err }, req, res) => {
                 logger.error('Server', `[ERROR]: 404 - ${err.message || err}`);
                 res.writeHead(404);
@@ -46,7 +70,18 @@ class Server {
         this._running = false;
         this._port = port;
         this._hostname = hostname;
-        this._server = http.createServer((req, res) => this._baseListener(req, res));
+        this._server = http.createServer((req, res) => {
+            try {
+                this._baseListener(req, res)
+            } catch (err) {
+                if (err instanceof HttpError) {
+                    this._handleError({ err }, req, res);
+                } else {
+                    this._handle500({ err: 'unkown error' }, req, res);
+                    throw err;
+                }
+            }
+        });
 
         this._server.on('connection', (socket) => {
                 this._sockets.push(socket);
@@ -149,8 +184,11 @@ class Server {
     }
 
     _baseListener(req, res) {
-        const url = new URL(req.url, `http://${req.headers.host}`);
+        this._doHttp(req, res);
+    }
 
+    _doHttp(req, res) {
+        const url = new URL(req.url, `http://${req.headers.host}`);
         let handleError = null;
         const handle = this.getHandler(req.method, url.pathname);
         if (handle === this._handle404) {
@@ -172,8 +210,8 @@ class Server {
             handle({ url, body, err: handleError }, req, res)
                 .catch(err => {
                     try {
-                        if (err instanceof PageNotFoundError) {
-                            this._handle404({ url, body, err }, req, res);
+                        if (err instanceof HttpError) {
+                            this._handleError({ url, body, err }, req, res);
                         } else {
                             this._handle500({ url, body, err }, req, res);
                         }
@@ -242,7 +280,9 @@ class Server {
 }
 
 module.exports = {
+    HttpError,
     PageNotFoundError,
     InternalServerError,
+    BadRequestError,
     Server
 };
