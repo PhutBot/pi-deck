@@ -108,8 +108,13 @@ class TwitchApi {
             });
     }
 
-    follows(from_login, to_login, cacheTime=0) {
+    follows(from_login, to_login, cacheTime=0, params={}) {
         const cacheKey = `${from_login}=>${to_login}`;
+
+        params = Object.assign({
+            first: 9999999999
+        }, params);
+
         return new Promise((resolve, reject) => {
                 if (cacheKey in this._cache.follows) {
                     const cached = this._cache.follows[cacheKey];
@@ -120,13 +125,13 @@ class TwitchApi {
                     }
                 }
             
-                let params = [];
+                let users = [];
                 if (!!from_login)
-                    params.push(from_login);
+                    users.push(from_login);
                 if (!!to_login)
-                    params.push(to_login);
+                    users.push(to_login);
 
-                this.users(params, Millis.inf())
+                this.users(users, Millis.inf())
                     .then(res => {
                             const user_ids = res.map(user => user.id);
 
@@ -139,17 +144,21 @@ class TwitchApi {
                                 throw 'error: TODO WRITE AN ERROR MSG; no users found /users/follows';
                             }
                             
-                            let params = {};
+                            const searchParams = Object.assign({}, params);
+                            searchParams.first = Math.min(Math.max(1, params.first), 100);
+                            
                             if (!!from_id)
-                                params['from_id'] = from_id;
+                                searchParams['from_id'] = from_id;
                             if (!!to_id)
-                                params['to_id'] = to_id;
-                                
-                            this._api('users/follows', params)
-                                .then(res2 => {
-                                        this._cache.follows[cacheKey] = { timestamp: Date.now(), data: res2.data };
-                                        resolve(res2.data);
-                                    })
+                                searchParams['to_id'] = to_id;
+                            
+                            this._paginate('users/follows', searchParams, params.first)
+                                .then(data => {
+                                    if (cacheTime > 0) {
+                                        this._cache.follows[cacheKey] = { timestamp: Date.now(), data };
+                                    }
+                                    resolve(data);
+                                })
                                 .catch(err => reject(`TwitchApi.follows - ${err}`));
                         })
                     .catch(err => reject(err));
@@ -245,6 +254,26 @@ class TwitchApi {
                 body: { status }
             }).then(response => resolve(response.body))
             .catch(err => reject(err));
+        });
+    }
+
+    // TODO: paginate the other api calls
+    _paginate(endpoint, params, want) {
+        let notFound = want;
+        return new Promise((resolve, reject) => {
+            this._api(endpoint, params)
+                .then(async (response) => {
+                    let data = response.data;
+                    notFound -= data.length;
+                    if ('pagination' in response && 'cursor' in response.pagination
+                            && (want < 0 || notFound > 0)) {
+                        params['after'] = response.pagination.cursor;
+                        const moreData = await this._paginate(endpoint, params, notFound);
+                        data = data.concat(moreData);
+                    }
+                    resolve(data);
+                })
+                .catch(err => reject(err));
         });
     }
 
