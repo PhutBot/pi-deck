@@ -12,6 +12,8 @@ StreamDeck_*_*
 
 # application files
 .env
+.block-list
+.naughty-list
 *settings.json
 run.sh
 

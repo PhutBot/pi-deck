@@ -7,7 +7,9 @@ const TwitchChat = require('./api/TwitchChat');
 const TwitchEventSub = require('./api/TwitchEventSub');
 const { CmdScopes, ChatCmd } = require('./ChatCmd');  
 const { Server } = require('../../server');
+const { ReadFileLSV, WriteFileLSV } = require('../../helper/File');
 
+//TODO: check on chat rate limits
 class Bot {
     constructor(auth) {
         this._auth = auth;
@@ -16,6 +18,12 @@ class Bot {
         this._broadcaster = null;
         this._cmds = {};
         this._followList = [];
+        
+        this._naughtyListWriteTimeout = null;
+        this._naughtyListWriteTimeoutLength = Millis.fromMin(5);
+        this._naughtyList = ReadFileLSV('.naughty-list');
+        this._blockList = ReadFileLSV('.block-list')
+            .map(pattern => new RegExp(pattern));
     }
     
     get running() {
@@ -27,10 +35,16 @@ class Bot {
 
         // pre-populate the follow list
         // TODO: this only gets the first 100 users atm
-        (await this._api.follows(null, this._broadcaster.login))
-            .forEach(follow => {
-                this._followList.push(follow.from_name);
-            });
+        this._followList = (await this._api.follows(null, this._broadcaster.login))
+            .filter(follow => {
+                const blocked = this._blockList.some(blockedName => blockedName.test(follow.from_login));
+                if (blocked && !this._naughtyList.includes(follow.from_name)) {
+                    this._naughtyList.push(follow.from_name);
+                }
+                return !blocked;
+            })
+            .map(follow => follow.from_name);
+        WriteFileLSV('.naughty-list', this._naughtyList);
 
         let body = await this._api.getCustomReward(this._broadcaster.id);
         if ('data' in body && Array.isArray(body.data) && body.data.length > 0) {
@@ -73,7 +87,19 @@ class Bot {
                     condition: { "broadcaster_user_id": this._broadcaster.id },
                     output: (data) => {
                         if ('event' in data) {
-                            if (!this._followList.includes(data.event.user_name)) {
+                            const blocked = this._blockList
+                                .some(blockedName => blockedName.test(follow.from_login));
+                            if (blocked) {
+                                if (!this._naughtyList.contains(follow_from)) {
+                                    this._naughtyList.push(follow.from_name);
+                                    if (!!this._naughtyListWriteTimeout) {
+                                        clearTimeout(this._naughtyListWriteTimeout);
+                                    }
+                                    this._naughtyListWriteTimeout = setTimeout(() => {
+                                        WriteFileLSV('.naughty-list', this._naughtyList);
+                                    }, this._naughtyListWriteTimeoutLength);
+                                }
+                            } else if (!this._followList.includes(data.event.user_name)) {
                                 this._followList.push(data.event.user_name);
                                 this._chat.chat(`${data.event.user_name} thank you for the follow!`);
                             }
