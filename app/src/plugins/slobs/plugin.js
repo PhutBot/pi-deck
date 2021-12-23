@@ -1,5 +1,5 @@
 const Env = require('../../helper/Env');
-const { InternalServerError } = require('../../server');
+const { InternalServerError } = require('../../server/server');
 const BasePlugin = require('../base/plugin');
 const SlobsClient = require('./client/SlobsClient');
 
