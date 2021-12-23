@@ -173,6 +173,24 @@
         HideMsg();
         HideAlerts();
 
+        let alertTimeout = null;
+        let alertQueue = [];
+        let alertHandler = () => {
+            let json = alertQueue.shift();
+
+            HideAlerts();
+            setTimeout(() => {
+                ShowAlert(json.alertType, json.target, json.count);
+            }, 500);
+            
+            if (alertQueue.length > 0) {
+                alertTimeout = setTimeout(alertHandler, json.timeout + 500);
+            } else {
+                setTimeout(HideAlerts, json.timeout);
+                alertTimeout = null;
+            }
+        };
+
         // ShowMsg('test');
         // ShowAlert('follow', 'TestUser', 112);
 
@@ -186,7 +204,17 @@
         
         socket.addEventListener('message', (event) => {
             console.log(event.data);
-            ShowMsg(event.data);
+            const json = JSON.parse(event.data);
+            switch (json.type) {
+                case 'alert':
+                    alertQueue.push(json);
+                    if (alertTimeout === null)
+                        alertTimeout = setTimeout(alertHandler, 500);
+                    break;
+                case 'msg':
+                    ShowMsg(json.target);
+                    break;
+            }
         });
     </script>
 </body>
