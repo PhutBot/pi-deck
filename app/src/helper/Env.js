@@ -1,7 +1,9 @@
 const fs = require('fs');
+const { Millis } = require('./Millis');
 
 class Env {
     static modified = false;
+    static saveTimeout = null;
     static vars = [];
     static filename = null;
 
@@ -10,8 +12,15 @@ class Env {
     }
 
     static set(name, value) {
-        if (Env.vars.includes(name))
+        if (Env.vars.includes(name)) {
             Env.modified = true;
+            if (Env.saveTimeout === null) {
+                Env.saveTimeout = setTimeout(() => {
+                    Env.save();
+                    Env.saveTimeout = null;
+                }, Millis.fromMin(5));
+            }
+        }
         process.env[name] = value;
     }
     
