@@ -25,6 +25,14 @@ class Bot {
         this._blockList = ReadFileLSV('.block-list')
             .map(pattern => new RegExp(pattern));
     }
+
+    get deathCount() {
+        return Number.parseInt(Env.get('GLOBAL.DEATH_COUNT')) || 0;
+    }
+
+    set deathCount(value) {
+        Env.set('GLOBAL.DEATH_COUNT', value);
+    }
     
     get running() {
         return this._running;
@@ -285,8 +293,21 @@ class Bot {
     isBroadcaster(user) {
         return (user === this._auth.channel.login);
     }
+
+    async globalVars(command) {
+        return {
+            'global.deathCount': () => this.deathCount,
+        }
+    }
+
+    async execVars(args) {
+        return {
+            'exec.deathCount+': () => this.deathCount += Number.parseInt(args['count']) || 1,
+            'exec.deathCount=': () => this.deathCount = Number.parseInt(args['count']),
+        }
+    }
     
-    async broadcasterVars(command) {
+    async broadcasterVars(args) {
         return {
             'broadcaster.name': async () => this._broadcaster.display_name,
             'broadcaster.login': async () => this._broadcaster.login,
@@ -352,6 +373,10 @@ class Bot {
     
         return result;
     }
+
+    escapeRegex(str) {
+        return str.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    }
     
     async replaceVars(command, output, senderLogin, msg) {
         const args = command.getArgs(msg);
@@ -359,14 +384,17 @@ class Bot {
         try {
             const chatVars = {
                     'msg': () => msg,
+                    ...(await this.execVars(args)),
+                    ...(await this.globalVars(args)),
                     ...(await this.broadcasterVars(command)),
                     ...(await this.userVars(command, 'sender', senderLogin)),
                     ...(await this.userVars(command, 'user', args['user'])),
                 };
     
             for (const varName in chatVars) {
+                const escName = this.escapeRegex(varName);
                 if (output.includes(`\${${varName}}`)) {
-                    const regex = new RegExp(`\\$\\{${varName}\\}`, 'g');
+                    const regex = new RegExp(`\\$\\{${escName}\\}`, 'g');
                     output = output.replace(regex, await chatVars[varName]());
                 }
             }
