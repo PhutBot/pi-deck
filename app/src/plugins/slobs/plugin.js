@@ -1,4 +1,4 @@
-const Env = require('../../helper/Env');
+const { Env } = require('helper-js');
 const { InternalServerError } = require('../../server/server');
 const BasePlugin = require('../base/plugin');
 const SlobsClient = require('./client/SlobsClient');
@@ -9,7 +9,7 @@ module.exports = class SlobsPlugin extends BasePlugin {
                 name: 'slobs',
                 version: '0.0.1',
                 description: 'The slobs plugin for the PiDeck.',
-                author: 'Caleb French'
+                author: 'PhutBot'
             });
         this._client = new SlobsClient(Env.get('SLOBS_CLIENT.ADDRESS'), Env.get('SLOBS_CLIENT.PORT'));
     }

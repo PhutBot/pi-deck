@@ -8,7 +8,7 @@ module.exports = class CorePlugin extends BasePlugin {
                 name: 'core',
                 version: '0.0.1',
                 description: 'The core plugin for the PiDeck.',
-                author: 'Caleb French'
+                author: 'PhutBot'
             });
         this._overlays = {};
         this._enableOverlayCache = false;

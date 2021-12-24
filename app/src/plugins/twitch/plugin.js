@@ -10,7 +10,7 @@ module.exports = class TwitchPlugin extends BasePlugin {
                 name: 'twitch',
                 version: '0.0.1',
                 description: 'The twitch plugin for the PiDeck.',
-                author: 'Caleb French'
+                author: 'PhutBot'
             });
 
         this._htmlFiles = {};

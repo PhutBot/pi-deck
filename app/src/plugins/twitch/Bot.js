@@ -1,6 +1,5 @@
 const https = require('https');
-const Env = require('../../helper/Env');
-const { Millis, elapsedToString } = require('./helper/Millis');
+const { Env, Millis } = require('helper-js');
 const { randomString } = require('./helper/Rand');
 const TwitchApi = require('./api/TwitchApi');
 const TwitchChat = require('./api/TwitchChat');
@@ -316,7 +315,7 @@ class Bot {
                     if (streams.length > 0) {
                         const startedAt = Date.parse(streams[0].started_at);
                         const elapsed = Date.now() - startedAt;
-                        return elapsedToString(elapsed, { hours: 0, minutes: 1 });
+                        return Millis.elapsedToString(elapsed, { hours: 0, minutes: 1 });
                     } else {
                         throw `could not find stream with broadcaster: ${this._broadcaster.login}`;
                     }
@@ -365,7 +364,7 @@ class Bot {
                 if (follows.length > 0) {
                     const followedAt = Date.parse(follows[0].followed_at);
                     const elapsed = Date.now() - followedAt;
-                    return elapsedToString(elapsed, { years: 0, weeks: 0, days: 1 });
+                    return Millis.elapsedToString(elapsed, { years: 0, weeks: 0, days: 1 });
                 } else {
                     throw `could not find stream with broadcaster: ${this._broadcaster.login}`;
                 }

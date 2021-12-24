@@ -1,4 +1,4 @@
-const Env = require('../../helper/Env');
+const { Env } = require('helper-js');
 
 module.exports = class BasePlugin {
     static _logger = require('npmlog');

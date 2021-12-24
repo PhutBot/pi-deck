@@ -1,6 +1,6 @@
 const { HttpServer } = require('./server/server');
 const BasePlugin = require('./plugins/base/plugin');
-const Env = require("./helper/Env");
+const { Env } = require("helper-js");
 // const whyIsNodeRunning = require('why-is-node-running');
 
 class Application {
